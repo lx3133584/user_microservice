@@ -1,7 +1,7 @@
 {
-  "name": "user-microservice",
-  "version": "0.0.1",
-  "description": "",
+  "name": "nest-user-auth",
+  "version": "0.0.0",
+  "description": "description",
   "author": "",
   "license": "MIT",
   "scripts": {
@@ -17,40 +17,72 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "NODE_ENV=test jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@nestjs/common": "^6.0.0",
-    "@nestjs/core": "^6.0.0",
-    "@nestjs/platform-express": "^6.0.0", 
-    "reflect-metadata": "^0.1.12",
-    "rimraf": "^2.6.2",
-    "rxjs": "^6.3.3"
+    "@nestjs/common": "^6.6.7",
+    "@nestjs/core": "^6.6.7",
+    "@nestjs/graphql": "^6.5.1",
+    "@nestjs/jwt": "^6.1.1",
+    "@nestjs/mongoose": "^6.1.2",
+    "@nestjs/passport": "^6.1.0",
+    "@nestjs/platform-express": "^6.6.7",
+    "apollo-server-express": "^2.9.3",
+    "axios": ">=0.19.0",
+    "bcrypt": "^3.0.6",
+    "dotenv": "^8.1.0",
+    "graphql": "^14.5.4",
+    "graphql-tools": "^4.0.5",
+    "joi": "^14.3.1",
+    "mongoose": "^5.6.12",
+    "nodemailer": "^6.3.0",
+    "npm": "^6.11.3",
+    "passport": "^0.4.0",
+    "passport-jwt": "^4.0.0",
+    "reflect-metadata": "^0.1.13",
+    "rimraf": "^3.0.0",
+    "rxjs": "^6.5.3",
+    "typescript": "^3.6.2"
   },
   "devDependencies": {
-    "@types/express": "^4.16.0",
-    "@types/jest": "^23.3.13",
-    "@types/node": "^10.12.18",
-    "@types/supertest": "^2.0.7",
-    "@nestjs/testing": "^6.0.0",
-    "jest": "^23.6.0",
-    "nodemon": "^1.18.9",
-    "prettier": "^1.15.3",
-    "supertest": "^3.4.1",
-    "ts-jest": "^23.10.5",
-    "ts-node": "^7.0.1",
-    "tsconfig-paths": "^3.7.0",
-    "tslint": "5.12.1",
-    "typescript": "^3.2.4"
+    "@nestjs/testing": "^6.8.2",
+    "@types/bcrypt": "^3.0.0",
+    "@types/dotenv": "^6.1.1",
+    "@types/express": "^4.17.1",
+    "@types/graphql": "^14.5.0",
+    "@types/jest": "^24.0.18",
+    "@types/joi": "^14.3.3",
+    "@types/mongodb": "^3.3.5",
+    "@types/mongoose": "^5.5.19",
+    "@types/node": "^12.7.11",
+    "@types/nodemailer": "^6.2.1",
+    "@types/passport-jwt": "^3.0.2",
+    "@types/supertest": "^2.0.8",
+    "jest": "^24.9.0",
+    "nodemon": "^1.19.3",
+    "prettier": "^1.18.2",
+    "supertest": "^4.0.2",
+    "ts-jest": "^24.1.0",
+    "ts-loader": "^6.2.0",
+    "ts-node": "^8.4.1",
+    "tsconfig-paths": "^3.9.0",
+    "tslint": "^5.20.0"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".spec.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "NODE_ENV": "test"
+    }
   }
 }
