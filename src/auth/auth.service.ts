@@ -2,10 +2,9 @@ import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { LoginUserInput, User, LoginResult } from '../graphql.classes';
-import { UserDocument } from '../users/schemas/user.schema';
 import { ConfigService } from '../config/config.service';
-import { resolve } from 'path';
+import { User } from '../users/users.entity';
+import { LoginUserInput, LoginResult } from './auth.interface';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +27,7 @@ export class AuthService {
     loginAttempt: LoginUserInput,
   ): Promise<LoginResult | undefined> {
     // This will be used for the initial login
-    let userToAttempt: UserDocument | undefined;
+    let userToAttempt: User | undefined;
     if (loginAttempt.email) {
       userToAttempt = await this.usersService.findOneByEmail(
         loginAttempt.email,
@@ -48,7 +47,7 @@ export class AuthService {
     // Check the supplied password against the hash stored for this email address
     let isMatch = false;
     try {
-      isMatch = await userToAttempt.checkPassword(loginAttempt.password);
+      isMatch = await this.usersService.checkPassword(userToAttempt, loginAttempt.password);
     } catch (error) {
       return undefined;
     }
@@ -60,8 +59,7 @@ export class AuthService {
         user: userToAttempt!,
         token,
       };
-      userToAttempt.lastSeenAt = new Date();
-      userToAttempt.save();
+      await this.usersService.update(userToAttempt.id, { lastLoginTime: new Date() });
       return result;
     }
 
@@ -72,19 +70,18 @@ export class AuthService {
    * Verifies that the JWT payload associated with a JWT is valid by making sure the user exists and is enabled
    *
    * @param {JwtPayload} payload
-   * @returns {(Promise<UserDocument | undefined>)} returns undefined if there is no user or the account is not enabled
+   * @returns {(Promise<User | undefined>)} returns undefined if there is no user or the account is not enabled
    * @memberof AuthService
    */
   async validateJwtPayload(
     payload: JwtPayload,
-  ): Promise<UserDocument | undefined> {
+  ): Promise<User | undefined> {
     // This will be used when the user has already logged in and has a JWT
     const user = await this.usersService.findOneByUsername(payload.username);
 
     // Ensure the user exists and their account isn't disabled
     if (user && user.enabled) {
-      user.lastSeenAt = new Date();
-      user.save();
+      await this.usersService.update(user.id, { lastLoginTime: new Date() });
       return user;
     }
 
@@ -108,7 +105,7 @@ export class AuthService {
       expiration.setTime(expiration.getTime() + expiresIn * 1000);
     }
     const data: JwtPayload = {
-      email: user.email,
+      id: user.id,
       username: user.username,
       expiration,
     };

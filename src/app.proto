@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package user;
+
+service UserService {
+  rpc Find (Empty) returns (Users) {}
+  rpc FindOne (Id) returns (User) {}
+  rpc CreateUser (InputCreateUser) returns (User) {}
+  rpc Login (InputCreateUser) returns (LoginResult) {}
+}
+
+message Empty {}
+
+message Id {
+  int32 id = 1;
+}
+
+message User {
+  int32 id = 1;
+  string username = 2;
+  string email = 3;
+  string name = 11;
+  string tel = 12;
+  string avatar = 13;
+}
+
+message InputCreateUser {
+  string username = 2;
+  string email = 3;
+  string password = 4;
+}
+
+message Users {
+  repeated User users = 10;
+}
+
+message LoginResult {
+  User user = 10;
+  string token = 20;
+}

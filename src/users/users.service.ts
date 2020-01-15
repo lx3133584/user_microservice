@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
-import { UserDocument, UserModel } from './schemas/user.schema';
-import { CreateUserInput, UpdateUserInput } from '../graphql.classes';
+import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { createTransport, SendMailOptions } from 'nodemailer';
 import { ConfigService } from '../config/config.service';
-import { MongoError } from 'mongodb';
-import { AuthService } from '../auth/auth.service';
+import * as bcrypt from 'bcrypt';
+import { User } from './users.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UpdateUserInput, CreateUserInput } from './users.interface';
+
+const saltRounds = 10;
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel('User') private readonly userModel: Model<UserDocument>,
+    @InjectRepository(User) private readonly userModel: Repository<User>,
     private configService: ConfigService,
-    private authService: AuthService,
   ) {}
 
   /**
@@ -24,7 +24,7 @@ export class UsersService {
    * @returns {boolean}
    * @memberof UsersService
    */
-  isAdmin(permissions: string[]): boolean {
+  isAdmin(permissions: string): boolean {
     return permissions.includes('admin');
   }
 
@@ -33,20 +33,20 @@ export class UsersService {
    * before adding it.
    *
    * @param {string} permission The permission to add to the user
-   * @param {string} username The user's username
-   * @returns {(Promise<UserDocument | undefined>)} The user Document with the updated permission. Undefined if the
+   * @param {number} id The user's id
+   * @returns {(Promise<User | undefined>)} The user Document with the updated permission. Undefined if the
    * user does not exist
    * @memberof UsersService
    */
   async addPermission(
     permission: string,
-    username: string,
-  ): Promise<UserDocument | undefined> {
-    const user = await this.findOneByUsername(username);
+    id: number,
+  ) {
+    const user = await this.findOne(id);
     if (!user) return undefined;
     if (user.permissions.includes(permission)) return user;
-    user.permissions.push(permission);
-    await user.save();
+    user.permissions = user.permissions.split(',').concat(permission).join();
+    await this.userModel.save(user);
     return user;
   }
 
@@ -54,20 +54,22 @@ export class UsersService {
    * Removes any permission string from the user's permissions array property.
    *
    * @param {string} permission The permission to remove from the user
-   * @param {string} username The username of the user to remove the permission from
-   * @returns {(Promise<UserDocument | undefined>)} Returns undefined if the user does not exist
+   * @param {number} id The id of the user to remove the permission from
+   * @returns {(Promise<User | undefined>)} Returns undefined if the user does not exist
    * @memberof UsersService
    */
   async removePermission(
     permission: string,
-    username: string,
-  ): Promise<UserDocument | undefined> {
-    const user = await this.findOneByUsername(username);
-    if (!user) return undefined;
-    user.permissions = user.permissions.filter(
+    id: number,
+  ): Promise<User | undefined> {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new Error(`${id} not found`);
+    }
+    user.permissions = user.permissions.split(',').filter(
       userPermission => userPermission !== permission,
-    );
-    await user.save();
+    ).join();
+    await this.userModel.save(user);
     return user;
   }
 
@@ -75,57 +77,33 @@ export class UsersService {
    * Updates a user in the database. If any value is invalid, it will still update the other
    * fields of the user.
    *
-   * @param {string} username of the user to update
-   * @param {UpdateUserInput} fieldsToUpdate The user can update their username, email, password, or enabled. If
-   * the username is updated, the user's token will no longer work. If the user disables their account, only an admin
+   * @param {number} id of the user to update
+   * @param {UpdateUserInput} fieldsToUpdate The user can update their id, email, password, or enabled. If
+   * the id is updated, the user's token will no longer work. If the user disables their account, only an admin
    * can reenable it
-   * @returns {(Promise<UserDocument | undefined>)} Returns undefined if the user cannot be found
+   * @returns {(Promise<User | undefined>)} Returns undefined if the user cannot be found
    * @memberof UsersService
    */
   async update(
-    username: string,
+    id: number,
     fieldsToUpdate: UpdateUserInput,
-  ): Promise<UserDocument | undefined> {
-    if (fieldsToUpdate.username) {
-      const duplicateUser = await this.findOneByUsername(
-        fieldsToUpdate.username,
-      );
-      if (duplicateUser) fieldsToUpdate.username = undefined;
-    }
+  ): Promise<User | undefined> {
+    const user = await this.findOne(
+      id,
+    );
 
-    if (fieldsToUpdate.email) {
-      const duplicateUser = await this.findOneByEmail(fieldsToUpdate.email);
-      const emailValid = UserModel.validateEmail(fieldsToUpdate.email);
-      if (duplicateUser || !emailValid) fieldsToUpdate.email = undefined;
-    }
-
-    const fields: any = {};
-
-    if (fieldsToUpdate.password) {
-      if (
-        await this.authService.validateUserByPassword({
-          username,
-          password: fieldsToUpdate.password.oldPassword,
-        })
-      ) {
-        fields.password = fieldsToUpdate.password.newPassword;
-      }
+    if (!user) {
+      throw new Error(`${id} not found`);
     }
 
     // Remove undefined keys for update
     for (const key in fieldsToUpdate) {
       if (typeof fieldsToUpdate[key] !== 'undefined' && key !== 'password') {
-        fields[key] = fieldsToUpdate[key];
+        user[key] = fieldsToUpdate[key];
       }
     }
 
-    let user: UserDocument | null = null;
-
-    user = await this.userModel.findOneAndUpdate(
-      { lowercaseUsername: username.toLowerCase() },
-      fields,
-      { new: true, runValidators: true },
-    );
+    await this.userModel.save(user);
 
     if (!user) return undefined;
 
@@ -145,7 +123,6 @@ export class UsersService {
 
     const user = await this.findOneByEmail(email);
     if (!user) return false;
-    if (!user.enabled) return false;
 
     const token = randomBytes(32).toString('hex');
 
@@ -164,7 +141,7 @@ export class UsersService {
       from: this.configService.emailFrom,
       to: email,
       subject: `Reset Password`,
-      text: `${user.username},
+      text: `${user.id},
       Replace this with a website that can pass the token:
       ${token}`,
     };
@@ -176,12 +153,12 @@ export class UsersService {
           return;
         }
 
-        user.passwordReset = {
-          token,
-          expiration,
-        };
+        // user.passwordReset = {
+        //   token,
+        //   expiration,
+        // };
 
-        user.save().then(() => resolve(true), () => resolve(false));
+        this.userModel.save(user).then(() => resolve(true), () => resolve(false));
       });
     });
   }
@@ -189,87 +166,99 @@ export class UsersService {
   /**
    * Resets a password after the user forgot their password and requested a reset
    *
-   * @param {string} username
+   * @param {number} id
    * @param {string} code the token set when the password reset email was sent out
    * @param {string} password the new password the user wants
-   * @returns {(Promise<UserDocument | undefined>)} Returns undefined if the code or the username is wrong
+   * @returns {(Promise<User | undefined>)} Returns undefined if the code or the id is wrong
    * @memberof UsersService
    */
   async resetPassword(
-    username: string,
+    id: number,
     code: string,
     password: string,
-  ): Promise<UserDocument | undefined> {
-    const user = await this.findOneByUsername(username);
-    if (user && user.passwordReset && user.enabled !== false) {
-      if (user.passwordReset.token === code) {
-        user.password = password;
-        user.passwordReset = undefined;
-        await user.save();
-        return user;
-      }
-    }
+  ): Promise<User | undefined> {
+    // const user = await this.findOne(id);
+    // if (user && user.passwordReset && user.enabled !== false) {
+    //   if (user.passwordReset.token === code) {
+    //     user.password = password;
+    //     user.passwordReset = undefined;
+    //     await user.save();
+    //     return user;
+    //   }
+    // }
     return undefined;
   }
 
   /**
    * Creates a user
    *
-   * @param {CreateUserInput} createUserInput username, email, and password. Username and email must be
+   * @param {CreateUserInput} createUserInput id, email, and password. id and email must be
    * unique, will throw an email with a description if either are duplicates
-   * @returns {Promise<UserDocument>} or throws an error
+   * @returns {Promise<User>} or throws an error
    * @memberof UsersService
    */
-  async create(createUserInput: CreateUserInput): Promise<UserDocument> {
-    const createdUser = new this.userModel(createUserInput);
+  async create(createUserInput: CreateUserInput): Promise<User> {
 
-    let user: UserDocument | undefined;
-    try {
-      user = await createdUser.save();
-    } catch (error) {
-      throw this.evaluateMongoError(error, createUserInput);
-    }
+    // createUserInput.password = await bcrypt.hash(createUserInput.password, saltRounds);
+
+    const user = this.userModel.create(createUserInput);
+    this.userModel.merge(user, {
+      createdTime: new Date(),
+      lastLoginTime: new Date(),
+      updatedTime: new Date(),
+    });
+    await this.userModel.save(user);
     return user;
+  }
+
+  /**
+   * Returns a user by their unique usernameor undefined
+   *
+   * @param {string} username of user, not case sensitive
+   * @returns {(Promise<User | undefined>)}
+   * @memberof UsersService
+   */
+  async findOneByUsername(username: string): Promise<User | undefined> {
+    const user = await this.userModel
+      .findOne({ username });
+    if (user) return user;
+    return undefined;
   }
 
   /**
    * Returns a user by their unique email address or undefined
    *
    * @param {string} email address of user, not case sensitive
-   * @returns {(Promise<UserDocument | undefined>)}
+   * @returns {(Promise<User | undefined>)}
    * @memberof UsersService
    */
-  async findOneByEmail(email: string): Promise<UserDocument | undefined> {
+  async findOneByEmail(email: string): Promise<User | undefined> {
     const user = await this.userModel
-      .findOne({ lowercaseEmail: email.toLowerCase() })
-      .exec();
+      .findOne({ email });
     if (user) return user;
     return undefined;
   }
 
   /**
-   * Returns a user by their unique username or undefined
+   * Returns a user by their unique id or undefined
    *
-   * @param {string} username of user, not case sensitive
-   * @returns {(Promise<UserDocument | undefined>)}
+   * @param {number} id of user, not case sensitive
+   * @returns {(Promise<User | undefined>)}
    * @memberof UsersService
    */
-  async findOneByUsername(username: string): Promise<UserDocument | undefined> {
-    const user = await this.userModel
-      .findOne({ lowercaseUsername: username.toLowerCase() })
-      .exec();
-    if (user) return user;
-    return undefined;
+  findOne(id: number) {
+    return this.userModel
+      .findOne(id);
   }
 
   /**
    * Gets all the users that are registered
    *
-   * @returns {Promise<UserDocument[]>}
+   * @returns {Promise<User[]>}
    * @memberof UsersService
    */
-  async getAllUsers(): Promise<UserDocument[]> {
-    const users = await this.userModel.find().exec();
+  async getAllUsers(): Promise<User[]> {
+    const users = await this.userModel.find();
     return users;
   }
 
@@ -280,42 +269,27 @@ export class UsersService {
    * @memberof UsersService
    */
   async deleteAllUsers(): Promise<void> {
-    await this.userModel.deleteMany({});
+    await this.userModel.clear();
   }
 
   /**
-   * Reads a mongo database error and attempts to provide a better error message. If
-   * it is unable to produce a better error message, returns the original error message.
+   * Deletes all the users in the database, used for testing
    *
-   * @private
-   * @param {MongoError} error
-   * @param {CreateUserInput} createUserInput
-   * @returns {Error}
+   * @returns {Promise<void>}
    * @memberof UsersService
    */
-  private evaluateMongoError(
-    error: MongoError,
-    createUserInput: CreateUserInput,
-  ): Error {
-    if (error.code === 11000) {
-      if (
-        error.message
-          .toLowerCase()
-          .includes(createUserInput.email.toLowerCase())
-      ) {
-        throw new Error(
-          `e-mail ${createUserInput.email} is already registered`,
-        );
-      } else if (
-        error.message
-          .toLowerCase()
-          .includes(createUserInput.username.toLowerCase())
-      ) {
-        throw new Error(
-          `Username ${createUserInput.username} is already registered`,
-        );
-      }
-    }
-    throw new Error(error.message);
+  async checkPassword(
+    user: User,
+    password: string,
+  ): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      bcrypt.compare(password, user.password, (error, isMatch) => {
+        if (error) {
+          reject(error);
+        }
+
+        resolve(isMatch);
+      });
+    });
   }
 }

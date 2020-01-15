@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { UserModel } from './schemas/user.schema';
 import { ConfigService } from '../config/config.service';
+import { User } from './users.entity';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -13,7 +13,7 @@ describe('UsersService', () => {
         UsersService,
         {
           provide: getModelToken('User'),
-          useValue: UserModel,
+          useValue: User,
         },
         ConfigService,
         {

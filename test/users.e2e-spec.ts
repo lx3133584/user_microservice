@@ -5,12 +5,12 @@ import { INestApplication } from '@nestjs/common';
 import { UsersService } from '../src/users/users.service';
 import { disconnect } from 'mongoose';
 import { AuthService } from '../src/auth/auth.service';
-import { LoginResult } from '../src/graphql.classes';
 import { ConfigService } from '../src/config/config.service';
 import { JwtService } from '@nestjs/jwt';
 import { UsersModule } from '../src/users/users.module';
 import { AuthModule } from '../src/auth/auth.module';
 import { ConfigModule } from '../src/config/config.module';
+import { LoginResult } from '../src/auth/auth.interface';
 
 describe('Users (e2e)', () => {
   let app: INestApplication;
@@ -72,7 +72,7 @@ describe('Users (e2e)', () => {
 
     const adminDocument = await usersService.findOneByUsername('admin');
 
-    adminDocument!.permissions = ['admin'];
+    adminDocument!.permissions = 'admin';
     await adminDocument!.save();
 
     let result = await authService.validateUserByPassword({

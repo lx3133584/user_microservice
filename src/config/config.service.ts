@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as Joi from 'joi';
 
 export interface EnvConfig {
-  [key: string]: string;
+  [key: string]: any;
 }
 
 @Injectable()
@@ -25,16 +25,6 @@ export class ConfigService {
 
   private validateInput(envConfig: EnvConfig): EnvConfig {
     const envVarsSchema: Joi.ObjectSchema = Joi.object({
-      MONGO_URI: Joi.string().required(),
-      MONGO_AUTH_ENABLED: Joi.boolean().default(false),
-      MONGO_USER: Joi.string().when('MONGO_AUTH_ENABLED', {
-        is: true,
-        then: Joi.required(),
-      }),
-      MONGO_PASSWORD: Joi.string().when('MONGO_AUTH_ENABLED', {
-        is: true,
-        then: Joi.required(),
-      }),
       IMAGES_URL: Joi.string().default('http://localhost:3000/images/'),
       JWT_SECRET: Joi.string().required(),
       JWT_EXPIRES_IN: Joi.number(),
@@ -56,6 +46,11 @@ export class ConfigService {
         then: Joi.required(),
       }),
       TEST_EMAIL_TO: Joi.string(),
+      MYSQL_HOST: Joi.string().required(),
+      MYSQL_PORT: Joi.number().default(3306),
+      MYSQL_USERNAME: Joi.string().required(),
+      MYSQL_PASSWORD: Joi.string().required(),
+      MYSQL_DATABASE: Joi.string().default('user'),
     });
 
     const { error, value: validatedEnvConfig } = Joi.validate(envConfig, envVarsSchema);
@@ -70,10 +65,6 @@ export class ConfigService {
       return +this.envConfig.JWT_EXPIRES_IN;
     }
     return undefined;
-  }
-
-  get mongoUri(): string {
-    return this.envConfig.MONGO_URI;
   }
 
   get jwtSecret(): string {
@@ -118,5 +109,15 @@ export class ConfigService {
 
   get mongoAuthEnabled(): boolean {
     return Boolean(this.envConfig.MONGO_AUTH_ENABLED).valueOf();
+  }
+
+  get mysqlConfig() {
+    return {
+      host: this.envConfig.MYSQL_HOST,
+      port: this.envConfig.MYSQL_PORT,
+      username: this.envConfig.MYSQL_USERNAME,
+      password: this.envConfig.MYSQL_PASSWORD,
+      database: this.envConfig.MYSQL_DATABASE,
+    };
   }
 }
