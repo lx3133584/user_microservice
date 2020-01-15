@@ -1,18 +1,30 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    //"declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "target": "es6",
-    "sourceMap": true,
-    "outDir": "./dist",
-    //"baseUrl": ".",
-    "strict": true,
-    "strictPropertyInitialization": false,
-    "skipLibCheck": true,
-    "suppressImplicitAnyIndexErrors": true
-  },
-  "exclude": ["node_modules", "dist"]
+    "compilerOptions": {
+        "allowJs": false,
+        "baseUrl": "./",
+        "declaration": true,
+        "esModuleInterop": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "module": "commonjs",
+        "noImplicitAny": false,
+        "noLib": false,
+        "lib": [
+            "es2017",
+            "esnext.asynciterable"
+        ],
+        "noUnusedLocals": false,
+        "removeComments": true,
+        "strict": false,
+        "strictPropertyInitialization": false,
+        "target": "es2017",
+        "outDir": "package"
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "test"
+    ]
 }
