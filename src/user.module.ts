@@ -34,6 +34,7 @@ import { CryptoUtil } from './utils/crypto.util';
 @Module({
     imports: [
         TypeOrmModule.forRoot({
+            type: 'mysql',
             host: 'localhost',
             port: 3306,
             username: 'root',

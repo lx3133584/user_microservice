@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package nt_module_user;
+package dd_module_user;
 
 message PlaceholderRequest {}
 
@@ -387,8 +387,9 @@ message UserData {
   string mobile = 4;
   bool banned = 5;
   bool recycle = 6;
-  string createdAt = 7;
-  string updatedAt = 8;
+  string createdTime = 7;
+  string updatedTime = 8;
+  string lastLoginTime = 12;
   repeated UserRoleData userRoles = 9;
   repeated UserOrganizationData userOrganizations = 10;
   repeated UserInfoData userInfos = 11;
@@ -473,8 +474,9 @@ message FindOneWithRolesAndPermissionsResponse {
     string mobile = 4;
     bool banned = 5;
     bool recycle = 6;
-    string createdAt = 7;
-    string updatedAt = 8;
+    string createdTime = 7;
+    string lastLoginTime = 12;
+    string updatedTime = 8;
     repeated UserRole roles = 9;
     message UserRole {
       int32 id = 1;

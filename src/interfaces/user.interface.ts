@@ -5,8 +5,9 @@ export interface UserInfoData {
     mobile: string;
     banned: boolean;
     recycle: boolean;
-    createdAt: string;
-    updatedAt: string;
+    createdTime: string;
+    updatedTime: string;
+    lastLoginTime: string;
     userRoles: {
         id: number;
         name: string

@@ -1,10 +1,10 @@
 {
-  "name": "nt-module-user",
+  "name": "dd-module-user",
   "version": "1.0.0",
-  "description": "The user module for Notadd application.",
+  "description": "The user module for dd application.",
   "scripts": {
     "start": "ts-node -r tsconfig-paths/register src/main.ts",
-    "start:watch": "nodemon",
+    "dev": "nodemon",
     "debug": "node --inspect-brk -r ts-node/register src/main.ts",
     "debug:watch": "nodemon --config nodemon-debug.json",
     "check": "tslint -p tsconfig.json -c tslint.json",
@@ -12,7 +12,7 @@
     "snyk-protect": "snyk protect",
     "prepublish": "npm run snyk-protect"
   },
-  "author": "notadd",
+  "author": "",
   "license": "Apache-2.0",
   "private": false,
   "dependencies": {
@@ -26,12 +26,13 @@
     "i18n": "0.8.3",
     "jsonwebtoken": "8.4.0",
     "moment": "2.23.0",
+    "mysql": "^2.17.1",
     "pg": "7.11.0",
     "reflect-metadata": "0.1.13",
     "rxjs": "6.5.2",
+    "snyk": "^1.192.0",
     "typeorm": "0.2.17",
-    "typescript": "3.4.5",
-    "snyk": "^1.192.0"
+    "typescript": "3.4.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "2.4.2",

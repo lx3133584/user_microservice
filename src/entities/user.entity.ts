@@ -79,7 +79,7 @@ export class User {
             }
         }
     })
-    createdAt: string;
+    createdTime: string;
 
     @UpdateDateColumn({
         transformer: {
@@ -91,5 +91,17 @@ export class User {
             }
         }
     })
-    updatedAt: string;
+    updatedTime: string;
+
+    @UpdateDateColumn({
+        transformer: {
+            from: (date: Date) => {
+                return moment(date).format('YYYY-MM-DD HH:mm:ss');
+            },
+            to: () => {
+                return new Date();
+            }
+        }
+    })
+    lastLoginTime: string;
 }

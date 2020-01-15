@@ -476,8 +476,9 @@ export class UserService {
             mobile: user.mobile,
             banned: user.banned,
             recycle: user.recycle,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
+            createdTime: user.createdTime,
+            updatedTime: user.updatedTime,
+            lastLoginTime: user.lastLoginTime,
             userRoles: user.roles,
             userOrganizations: user.organizations,
             userInfos: infoItems.length ? infoItems.map(infoItem => {
